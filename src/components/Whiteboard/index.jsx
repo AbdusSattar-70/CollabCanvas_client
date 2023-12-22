@@ -4,11 +4,27 @@ import { COLORS, TOOL_ITEMS } from "../../utils/constants";
 import Menu from "../Menu";
 import DrawingShapeAndTool from "../DrawingShapeAndTool/DrawingShapeAndTool";
 import { socket } from "../../utils/socket";
+import useBoard from "../../hooks/useBoard";
+
+// const ADMIN = "ADMIN";
+const EVENT = {
+  DRAW: "draw",
+  REDO: "redo",
+  UNDO: "undo",
+  CLEAR: "clear",
+  ACTIVITY: "activity",
+  ENTERROOM: "enterRoom",
+  NOTIFY: "notify",
+  USERLIST: "userList",
+  ROOMLIST: "roomList",
+  MOUSEUP: "mouseup",
+};
 
 const WhiteBoard = () => {
+  const { board } = useBoard();
   const isDrawing = useRef(false);
-  const drawingTimeout = useRef(null);
-  const undoRedoTimeout = useRef(null);
+  const drawingTimeout = useRef();
+  const undoRedoTimeout = useRef();
 
   const [tool, setTool] = useState(TOOL_ITEMS.PENCIL);
   const [lines, setLines] = useState([]);
@@ -18,32 +34,32 @@ const WhiteBoard = () => {
   const [brushSize, setBrushSize] = useState(1);
 
   useEffect(() => {
-    socket.on("draw", (data) => {
+    socket.on(EVENT.DRAW, (data) => {
       setLines(data.lines);
     });
 
-    socket.on("undo", (data) => {
+    socket.on(EVENT.UNDO, (data) => {
       const undoneLine = data.line;
       setRedoStack([...redoStack, undoneLine]);
       setLines((prevLines) => prevLines.slice(0, -1));
     });
 
-    socket.on("redo", (data) => {
+    socket.on(EVENT.REDO, (data) => {
       const redoneLine = data.line;
       setLines([...lines, redoneLine]);
       setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
     });
 
-    socket.on("clear", () => {
+    socket.on(EVENT.CLEAR, () => {
       setLines([]);
       setRedoStack([]);
     });
 
     return () => {
-      socket.off("draw");
-      socket.off("undo");
-      socket.off("redo");
-      socket.off("clear");
+      socket.off(EVENT.DRAW);
+      socket.off(EVENT.UNDO);
+      socket.off(EVENT.REDO);
+      socket.off(EVENT.CLEAR);
     };
   }, [lines, redoStack, socket]);
 
@@ -83,7 +99,7 @@ const WhiteBoard = () => {
 
     // Set a timeout to emit the "draw" event after a delay
     drawingTimeout.current = setTimeout(() => {
-      socket.emit("draw", { lines });
+      socket.emit(EVENT.DRAW, { lines });
     }, 1000);
   };
 
@@ -115,7 +131,7 @@ const WhiteBoard = () => {
 
       // Emit undo event after a delay
       undoRedoTimeout.current = setTimeout(() => {
-        socket.emit("undo", { line: undoneLine });
+        socket.emit(EVENT.UNDO, { line: undoneLine });
       }, 1000);
     }
   };
@@ -128,7 +144,7 @@ const WhiteBoard = () => {
 
       // Emit redo event after a delay
       undoRedoTimeout.current = setTimeout(() => {
-        socket.emit("redo", { line: redoneLine });
+        socket.emit(EVENT.REDO, { line: redoneLine });
       }, 1000);
     }
   };
@@ -142,7 +158,7 @@ const WhiteBoard = () => {
     clearTimeout(undoRedoTimeout.current);
 
     // Emit clear event
-    socket.emit("clear");
+    socket.emit(EVENT.CLEAR);
   };
 
   const handleBrushSize = (size) => {
@@ -150,9 +166,9 @@ const WhiteBoard = () => {
   };
 
   useEffect(() => {
-    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener(EVENT.MOUSEUP, handleMouseUp);
     return () => {
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener(EVENT.MOUSEUP, handleMouseUp);
     };
   }, []);
 
