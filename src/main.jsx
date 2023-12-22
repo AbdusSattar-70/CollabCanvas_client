@@ -29,7 +29,7 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <main>
+  <main className="overflow-x-hidden">
     <BoardProvider>
       <RouterProvider router={router} />
     </BoardProvider>

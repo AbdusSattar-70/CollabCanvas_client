@@ -4,9 +4,9 @@ import { COLORS, TOOL_ITEMS } from "../../utils/constants";
 import Menu from "../Menu";
 import DrawingShapeAndTool from "../DrawingShapeAndTool/DrawingShapeAndTool";
 import { socket } from "../../utils/socket";
-import useBoard from "../../hooks/useBoard";
+import useJoinedUsers from "../../hooks/useJoinedUsers";
+import { ToastContainer, toast } from "react-toastify";
 
-// const ADMIN = "ADMIN";
 const EVENT = {
   DRAW: "draw",
   REDO: "redo",
@@ -21,7 +21,8 @@ const EVENT = {
 };
 
 const WhiteBoard = () => {
-  const { board } = useBoard();
+  const { joinedUsers } = useJoinedUsers();
+  const { boards } = joinedUsers;
   const isDrawing = useRef(false);
   const drawingTimeout = useRef();
   const undoRedoTimeout = useRef();
@@ -32,6 +33,9 @@ const WhiteBoard = () => {
   const [previousColor, setPreviousColor] = useState(COLORS.BASIC);
   const [redoStack, setRedoStack] = useState([]);
   const [brushSize, setBrushSize] = useState(1);
+
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [roomList, setRoomList] = useState([]);
 
   useEffect(() => {
     socket.on(EVENT.DRAW, (data) => {
@@ -55,13 +59,44 @@ const WhiteBoard = () => {
       setRedoStack([]);
     });
 
+    socket.on(EVENT.USERLIST, (data) => {
+      setActiveUsers(data.users);
+    });
+
+    socket.on(EVENT.ROOMLIST, (data) => {
+      setRoomList(data.rooms);
+    });
+
     return () => {
       socket.off(EVENT.DRAW);
       socket.off(EVENT.UNDO);
       socket.off(EVENT.REDO);
       socket.off(EVENT.CLEAR);
+      socket.off(EVENT.USERLIST);
+      socket.off(EVENT.ROOMLIST);
     };
   }, [lines, redoStack, socket]);
+
+  useEffect(() => {
+    const rooms = Object.keys(boards);
+
+    // Emit the enter room event for each board
+    rooms.forEach((room) => {
+      const userNames = boards[room];
+      userNames.forEach((userName) => {
+        socket.emit(EVENT.ENTERROOM, { name: userName, room });
+      });
+    });
+
+    // Listen for the notify event to receive messages
+    socket.on(EVENT.NOTIFY, ({ text }) => {
+      toast.info(`${text}`);
+    });
+
+    return () => {
+      socket.off(EVENT.NOTIFY);
+    };
+  }, [boards]);
 
   const handleMouseDown = (e) => {
     isDrawing.current = true;
@@ -173,8 +208,10 @@ const WhiteBoard = () => {
   }, []);
 
   return (
-    <div>
+    <>
       <Menu
+        activeUsers={activeUsers}
+        roomList={roomList}
         currentColor={currentColor}
         brushSize={brushSize}
         handleToolChange={handleToolChange}
@@ -194,7 +231,12 @@ const WhiteBoard = () => {
       >
         <DrawingShapeAndTool lines={lines} />
       </Stage>
-    </div>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar
+      />
+    </>
   );
 };
 

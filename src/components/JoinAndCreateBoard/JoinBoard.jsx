@@ -3,28 +3,23 @@ import PropTypes from "prop-types";
 import { GrClose } from "react-icons/gr";
 import { BiSolidAddToQueue } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
-import useBoard from "../../hooks/useBoard";
-import { fetchData } from "../../api/fetchData";
+import useJoinedUsers from "../../hooks/useJoinedUsers";
 
-const JoinBoardModal = ({ JoinBoardRef, boardId }) => {
-  const UPDATE_BOARD_URI = "/update-board";
-  const { setBoard } = useBoard();
+const JoinBoardModal = ({ JoinBoardRef, boardId, boardName }) => {
+  const { setJoinedUsers } = useJoinedUsers();
   const navigate = useNavigate();
   const [joinedUser, setJoinedUser] = useState("");
 
-  const handleJoinBoard = async (currentBoardId) => {
+  const handleJoinBoard = (boardId, boardName) => {
     if (joinedUser) {
-      try {
-        const res = await fetchData.patch(UPDATE_BOARD_URI, {
-          _id: currentBoardId,
-          joinedUser,
-        });
-
-        setBoard(res.data);
-        navigate(`/${currentBoardId}`);
-      } catch (error) {
-        console.error("Error joining board:", error);
-      }
+      setJoinedUsers((prev) => ({
+        ...prev,
+        boards: {
+          ...prev.boardIds,
+          [boardName]: [...(prev.boards[boardName] || []), joinedUser],
+        },
+      }));
+      navigate(`/${boardId}`);
     }
   };
 
@@ -51,7 +46,7 @@ const JoinBoardModal = ({ JoinBoardRef, boardId }) => {
 
           <button
             className="btn btn-outline btn-accent"
-            onClick={() => handleJoinBoard(boardId)}
+            onClick={() => handleJoinBoard(boardId, boardName)}
           >
             <BiSolidAddToQueue className="text-3xl" />
           </button>
@@ -66,6 +61,7 @@ JoinBoardModal.propTypes = {
     current: PropTypes.instanceOf(Element),
   }),
   boardId: PropTypes.string.isRequired,
+  boardName: PropTypes.string.isRequired,
 };
 
 export default JoinBoardModal;

@@ -10,14 +10,10 @@ const CreateBoardModal = ({ createBoardRef }) => {
   const CREATED_STATUS = 201;
   const navigate = useNavigate();
   const [user, setUser] = useState("");
-  const [boardNm, setBoardNm] = useState("");
 
   const handleCreateBoard = async () => {
     try {
-      const res = await fetchData.post(CREATE_BOARD_URI, {
-        userName: user,
-        boardName: boardNm,
-      });
+      const res = await fetchData.post(CREATE_BOARD_URI, { userName: user });
 
       if (res.status === CREATED_STATUS) {
         const { _id: boardId } = res.data.board;
@@ -43,16 +39,6 @@ const CreateBoardModal = ({ createBoardRef }) => {
             value={user}
             required
             onChange={(e) => setUser(e.target.value)}
-          />
-          <input
-            id="boardName"
-            name="boardName"
-            type="text"
-            placeholder="Enter a new board name"
-            className="input input-bordered input-info w-full"
-            value={boardNm}
-            required
-            onChange={(e) => setBoardNm(e.target.value)}
           />
         </form>
         <div className="modal-action justify-between">

@@ -14,8 +14,8 @@ const DisplayBoars = ({ boardName, boardId, userName }) => {
           />
         </figure>
         <div className="card-body">
-          <h2 className="card-title">{boardName}</h2>
-          <p>Created by: {userName}</p>
+          <h2 className="card-title">{boardName.split(" ")[0]}</h2>
+          <p>Created by: {userName.split(" ")[0]}</p>
           <button
             aria-label="create board button"
             className="btn btn-outline btn-secondary"
@@ -25,7 +25,11 @@ const DisplayBoars = ({ boardName, boardId, userName }) => {
           </button>
         </div>
       </div>
-      <JoinBoardModal JoinBoardRef={JoinBoardRef} boardId={boardId} />
+      <JoinBoardModal
+        JoinBoardRef={JoinBoardRef}
+        boardId={boardId}
+        boardName={boardName}
+      />
     </div>
   );
 };

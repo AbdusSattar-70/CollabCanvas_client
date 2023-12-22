@@ -4,10 +4,10 @@ import PropTypes from "prop-types";
 const BoardContext = createContext({});
 
 export const BoardProvider = ({ children }) => {
-  const [board, setBoard] = useState([]);
+  const [joinedUsers, setJoinedUsers] = useState({ boards: {} });
 
   return (
-    <BoardContext.Provider value={{ board, setBoard }}>
+    <BoardContext.Provider value={{ joinedUsers, setJoinedUsers }}>
       {children}
     </BoardContext.Provider>
   );
