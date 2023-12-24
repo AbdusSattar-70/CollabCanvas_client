@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { Stage } from "react-konva";
 import { COLORS, TOOL_ITEMS, SOCKET_EVENT } from "../../utils/constants";
 import Menu from "../Menu";
@@ -27,25 +33,30 @@ const WhiteBoard = () => {
   const [activeUsers, setActiveUsers] = useState([]);
   const [roomList, setRoomList] = useState([]);
 
-  useEffect(() => {
-    const fetchPreviousLines = async (id) => {
-      try {
-        const res = await fetchData.get(`boards/${id}`);
-        setLines((prevLines) => [...prevLines, ...res.data[0].lines]);
-      } catch (error) {
-        console.error("Error fetching previous lines:", error);
-      }
-    };
-
-    fetchPreviousLines(id);
+  const fetchPreviousLines = useCallback(async () => {
+    try {
+      const res = await fetchData.get(`boards/${id}`);
+      setLines((prevLines) => [...prevLines, ...res.data[0].lines]);
+    } catch (error) {
+      console.error("Error fetching previous lines:", error);
+    }
   }, [id]);
 
   useEffect(() => {
+    fetchPreviousLines();
+  }, [fetchPreviousLines]);
+
+  useLayoutEffect(() => {
     socket.emit(SOCKET_EVENT.ENTERROOM, { name: joinedUser.name, room: id });
 
     const handleDraw = (data) => {
-      const restored = JSON.parse(pako.inflate(data, { to: "string" }));
-      setLines((prev) => [...prev, ...restored]);
+      if (!handleDraw.timeoutId) {
+        handleDraw.timeoutId = setTimeout(() => {
+          const restored = JSON.parse(pako.inflate(data, { to: "string" }));
+          setLines((prev) => [...prev, ...restored]);
+          handleDraw.timeoutId = null;
+        }, 10);
+      }
     };
 
     const handleUndo = (data) => {
@@ -56,7 +67,7 @@ const WhiteBoard = () => {
 
     const handleRedo = (data) => {
       const redoneLine = data.line;
-      setLines([...lines, redoneLine]);
+      setLines((prevLines) => [...prevLines, redoneLine]);
       setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
     };
 
@@ -89,6 +100,18 @@ const WhiteBoard = () => {
       socket.off(SOCKET_EVENT.USERLIST, handleUserList);
       socket.off(SOCKET_EVENT.ROOMLIST, handleRoomList);
     };
+  }, [id, joinedUser, redoStack]);
+
+  useEffect(() => {
+    const handleNotify = ({ text }) => {
+      toast.info(`${text}`);
+    };
+
+    socket.once(SOCKET_EVENT.NOTIFY, handleNotify);
+
+    return () => {
+      socket.off(SOCKET_EVENT.NOTIFY, handleNotify);
+    };
   }, []);
 
   useEffect(() => {
@@ -97,16 +120,10 @@ const WhiteBoard = () => {
       setLines((prev) => [...prev, ...restored]);
     };
 
-    const handleNotify = ({ text }) => {
-      toast.info(`${text}`);
-    };
-
     socket.on(SOCKET_EVENT.FETCH, handleFetch);
-    socket.on(SOCKET_EVENT.NOTIFY, handleNotify);
 
     return () => {
       socket.off(SOCKET_EVENT.FETCH, handleFetch);
-      socket.off(SOCKET_EVENT.NOTIFY, handleNotify);
     };
   }, []);
 
@@ -120,33 +137,41 @@ const WhiteBoard = () => {
       brushSize,
     };
 
-    setLines([...lines, newLine]);
+    setLines((prevLines) => [...prevLines, newLine]);
     setRedoStack([]);
 
     clearTimeout(drawingTimeout.current);
   };
 
-  const handleMouseMove = (e) => {
-    if (!isDrawing.current) return;
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDrawing.current) return;
 
-    const pos = e.target.getStage().getPointerPosition();
-    let lastLine = lines[lines.length - 1];
+      const pos = e.target.getStage().getPointerPosition();
+      const lastLine = { ...lines[lines.length - 1] };
 
-    setLines((prevLines) => {
-      if (tool === TOOL_ITEMS.PENCIL || tool === TOOL_ITEMS.ERASER) {
-        lastLine.points = lastLine.points.concat([pos.x, pos.y]);
-      } else {
-        lastLine.points[2] = pos.x;
-        lastLine.points[3] = pos.y;
-      }
-      return [...prevLines.slice(0, -1), lastLine];
-    });
+      setLines((prevLines) => {
+        if (tool === TOOL_ITEMS.PENCIL || tool === TOOL_ITEMS.ERASER) {
+          lastLine.points = lastLine.points.concat([pos.x, pos.y]);
+        } else {
+          lastLine.points[2] = pos.x;
+          lastLine.points[3] = pos.y;
+        }
+        return [...prevLines.slice(0, -1), lastLine];
+      });
 
-    drawingTimeout.current = setTimeout(() => {
-      const compressedLines = pako.deflate(JSON.stringify(lines));
-      socket.emit(SOCKET_EVENT.DRAW, compressedLines);
-    }, 2000);
-  };
+      clearTimeout(drawingTimeout.current);
+      drawingTimeout.current = setTimeout(
+        () => {
+          const lastSegment = lines.slice(-1);
+          const compressedLines = pako.deflate(JSON.stringify(lastSegment));
+          socket.emit(SOCKET_EVENT.DRAW, compressedLines);
+        },
+        tool === TOOL_ITEMS.RECT ? 1000 : 10
+      );
+    },
+    [drawingTimeout, lines, tool]
+  );
 
   const handleStoreBoardData = async () => {
     const uri = stageRef.current.toDataURL();
@@ -154,12 +179,8 @@ const WhiteBoard = () => {
     if (updated.status === 200) {
       toast.info("Stored Success");
     } else {
-      toast.warning("Opps,something went wrong,please try again");
+      toast.warning("Oops, something went wrong, please try again");
     }
-  };
-
-  const handleMouseUp = () => {
-    isDrawing.current = false;
   };
 
   const handleToolChange = (selectedTool) => {
@@ -176,29 +197,29 @@ const WhiteBoard = () => {
     setCurrentColor(newColor);
   };
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (lines.length > 0) {
-      const undoneLine = lines[lines.length - 1];
-      setRedoStack([...redoStack, undoneLine]);
+      const undoneLine = { ...lines[lines.length - 1] };
+      setRedoStack((prevRedoStack) => [...prevRedoStack, undoneLine]);
       setLines((prevLines) => prevLines.slice(0, -1));
 
       undoRedoTimeout.current = setTimeout(() => {
         socket.emit(SOCKET_EVENT.UNDO, { line: undoneLine });
       }, 1000);
     }
-  };
+  }, [lines]);
 
-  const handleRedo = () => {
+  const handleRedo = useCallback(() => {
     if (redoStack.length > 0) {
-      const redoneLine = redoStack[redoStack.length - 1];
-      setLines([...lines, redoneLine]);
+      const redoneLine = { ...redoStack[redoStack.length - 1] };
+      setLines((prevLines) => [...prevLines, redoneLine]);
       setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
 
       undoRedoTimeout.current = setTimeout(() => {
         socket.emit(SOCKET_EVENT.REDO, { line: redoneLine });
       }, 1000);
     }
-  };
+  }, [redoStack]);
 
   const handleClear = () => {
     setLines([]);
@@ -215,6 +236,9 @@ const WhiteBoard = () => {
   };
 
   useEffect(() => {
+    const handleMouseUp = () => {
+      isDrawing.current = false;
+    };
     document.addEventListener(SOCKET_EVENT.MOUSEUP, handleMouseUp);
     return () => {
       document.removeEventListener(SOCKET_EVENT.MOUSEUP, handleMouseUp);

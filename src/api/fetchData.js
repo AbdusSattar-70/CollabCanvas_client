@@ -1,6 +1,6 @@
 import axios from 'axios';
 import pako from 'pako';
-const BASE_URL = 'https://collabcanvas.onrender.com/api';
+const BASE_URL = 'http://localhost:5000/api';
 const BOARD_UPDATE_URL = "/update-board";
 
 export const fetchData = axios.create({
