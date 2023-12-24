@@ -4,13 +4,15 @@ import {
   faRotateLeft,
   faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
-import { GrClearOption } from "react-icons/gr";
+import { IoMdDownload } from "react-icons/io";
+import { GrClearOption, GrDocumentStore } from "react-icons/gr";
 import { ImPencil2 } from "react-icons/im";
 import { IoMdResize } from "react-icons/io";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FaEyeDropper } from "react-icons/fa6";
 import { TOOL_ITEMS } from "../../utils/constants";
 import NotifyAndShape from "./NotifyAndShape";
+import { Stage } from "react-konva";
 
 const Menu = ({
   activeUsers,
@@ -23,9 +25,21 @@ const Menu = ({
   handleUndo,
   handleClear,
   handleColorChange,
+  handleStoreBoardData,
+  stageRef,
 }) => {
+  const downloadURI = () => {
+    const uri = stageRef.current.toDataURL();
+    var link = document.createElement("a");
+    link.download = "stage.jpeg";
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="grid grid-cols-10 max-w-screen-sm py-4 pl-4 rounded-md bg-slate-300 border-2 border-red-200 shadow-2xl">
+    <div className="grid grid-cols-12 py-2 pl-1 rounded-md bg-slate-300 border-2 border-red-200 shadow-2xl">
       <div className="col-span-3">
         <NotifyAndShape
           handleToolChange={handleToolChange}
@@ -33,8 +47,8 @@ const Menu = ({
           roomList={roomList}
         />
       </div>
-      <div className="col-span-7">
-        <div className="grid grid-cols-7">
+      <div className="col-span-9">
+        <div className="grid grid-cols-9">
           <div className="cursor-pointer flex justify-center items-center h-10 w-10 rounded-md ">
             <div className="text-xl flex flex-col justify-center items-center">
               <FaEyeDropper />
@@ -59,7 +73,7 @@ const Menu = ({
                 className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
               >
                 <li>
-                  <li>Brush Stroke</li>
+                  <p>Brush Stroke</p>
                   <button>
                     <input
                       id="brushStroke"
@@ -108,6 +122,18 @@ const Menu = ({
           >
             <FontAwesomeIcon icon={faRotateRight} className="text-xl" />
           </button>
+          <button
+            onClick={() => downloadURI()}
+            className="text-xl bg-slate-100 w-10  hover:bg-slate-400 active:bg-slate-400 cursor-pointer flex justify-center items-center h-10 rounded-md "
+          >
+            <IoMdDownload className="text-xl" />
+          </button>
+          <button
+            onClick={() => handleStoreBoardData()}
+            className="border-red-blink text-xl bg-slate-100 w-10  hover:bg-slate-400 active:bg-slate-400 cursor-pointer flex justify-center items-center h-10 rounded-md pr-2"
+          >
+            <GrDocumentStore className="text-xl" />
+          </button>
         </div>
       </div>
     </div>
@@ -118,11 +144,15 @@ Menu.propTypes = {
   activeUsers: PropTypes.array.isRequired,
   roomList: PropTypes.array.isRequired,
   currentColor: PropTypes.string.isRequired,
+  stageRef: PropTypes.shape({
+    current: PropTypes.instanceOf(Stage),
+  }),
   brushSize: PropTypes.number.isRequired,
   handleToolChange: PropTypes.func.isRequired,
   handleBrushSize: PropTypes.func.isRequired,
   handleRedo: PropTypes.func.isRequired,
   handleUndo: PropTypes.func.isRequired,
+  handleStoreBoardData: PropTypes.func.isRequired,
   handleClear: PropTypes.func.isRequired,
   handleColorChange: PropTypes.func.isRequired,
 };

@@ -1,28 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { Stage } from "react-konva";
-import { COLORS, TOOL_ITEMS } from "../../utils/constants";
+import { COLORS, TOOL_ITEMS, SOCKET_EVENT } from "../../utils/constants";
 import Menu from "../Menu";
 import DrawingShapeAndTool from "../DrawingShapeAndTool/DrawingShapeAndTool";
 import { socket } from "../../utils/socket";
 import useJoinedUsers from "../../hooks/useJoinedUsers";
 import { ToastContainer, toast } from "react-toastify";
-
-const EVENT = {
-  DRAW: "draw",
-  REDO: "redo",
-  UNDO: "undo",
-  CLEAR: "clear",
-  ACTIVITY: "activity",
-  ENTERROOM: "enterRoom",
-  NOTIFY: "notify",
-  USERLIST: "userList",
-  ROOMLIST: "roomList",
-  MOUSEUP: "mouseup",
-};
+import { useParams } from "react-router-dom";
+import { fetchData, updateBoard } from "../../api/fetchData";
+import pako from "pako";
 
 const WhiteBoard = () => {
-  const { joinedUsers } = useJoinedUsers();
-  const { boards } = joinedUsers;
+  const stageRef = useRef();
+  const { id } = useParams();
+  const { joinedUser } = useJoinedUsers();
   const isDrawing = useRef(false);
   const drawingTimeout = useRef();
   const undoRedoTimeout = useRef();
@@ -33,70 +24,91 @@ const WhiteBoard = () => {
   const [previousColor, setPreviousColor] = useState(COLORS.BASIC);
   const [redoStack, setRedoStack] = useState([]);
   const [brushSize, setBrushSize] = useState(1);
-
   const [activeUsers, setActiveUsers] = useState([]);
   const [roomList, setRoomList] = useState([]);
 
   useEffect(() => {
-    socket.on(EVENT.DRAW, (data) => {
-      setLines(data.lines);
-    });
+    const fetchPreviousLines = async (id) => {
+      try {
+        const res = await fetchData.get(`boards/${id}`);
+        setLines((prevLines) => [...prevLines, ...res.data[0].lines]);
+      } catch (error) {
+        console.error("Error fetching previous lines:", error);
+      }
+    };
 
-    socket.on(EVENT.UNDO, (data) => {
+    fetchPreviousLines(id);
+  }, [id]);
+
+  useEffect(() => {
+    socket.emit(SOCKET_EVENT.ENTERROOM, { name: joinedUser.name, room: id });
+
+    const handleDraw = (data) => {
+      const restored = JSON.parse(pako.inflate(data, { to: "string" }));
+      setLines((prev) => [...prev, ...restored]);
+    };
+
+    const handleUndo = (data) => {
       const undoneLine = data.line;
       setRedoStack([...redoStack, undoneLine]);
       setLines((prevLines) => prevLines.slice(0, -1));
-    });
+    };
 
-    socket.on(EVENT.REDO, (data) => {
+    const handleRedo = (data) => {
       const redoneLine = data.line;
       setLines([...lines, redoneLine]);
       setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
-    });
+    };
 
-    socket.on(EVENT.CLEAR, () => {
+    const handleClear = () => {
       setLines([]);
       setRedoStack([]);
-    });
+    };
 
-    socket.on(EVENT.USERLIST, (data) => {
+    const handleUserList = (data) => {
       setActiveUsers(data.users);
-    });
+    };
 
-    socket.on(EVENT.ROOMLIST, (data) => {
-      setRoomList(data.rooms);
-    });
+    const handleRoomList = (data) => {
+      setRoomList((prev) => [...prev, ...data.rooms]);
+    };
+
+    socket.on(SOCKET_EVENT.DRAW, handleDraw);
+    socket.on(SOCKET_EVENT.UNDO, handleUndo);
+    socket.on(SOCKET_EVENT.REDO, handleRedo);
+    socket.on(SOCKET_EVENT.CLEAR, handleClear);
+    socket.on(SOCKET_EVENT.USERLIST, handleUserList);
+    socket.on(SOCKET_EVENT.ROOMLIST, handleRoomList);
 
     return () => {
-      socket.off(EVENT.DRAW);
-      socket.off(EVENT.UNDO);
-      socket.off(EVENT.REDO);
-      socket.off(EVENT.CLEAR);
-      socket.off(EVENT.USERLIST);
-      socket.off(EVENT.ROOMLIST);
+      socket.off(SOCKET_EVENT.ENTERROOM);
+      socket.off(SOCKET_EVENT.DRAW, handleDraw);
+      socket.off(SOCKET_EVENT.UNDO, handleUndo);
+      socket.off(SOCKET_EVENT.REDO, handleRedo);
+      socket.off(SOCKET_EVENT.CLEAR, handleClear);
+      socket.off(SOCKET_EVENT.USERLIST, handleUserList);
+      socket.off(SOCKET_EVENT.ROOMLIST, handleRoomList);
     };
-  }, [lines, redoStack, socket]);
+  }, []);
 
   useEffect(() => {
-    const rooms = Object.keys(boards);
+    const handleFetch = (data) => {
+      const restored = JSON.parse(pako.inflate(data, { to: "string" }));
+      setLines((prev) => [...prev, ...restored]);
+    };
 
-    // Emit the enter room event for each board
-    rooms.forEach((room) => {
-      const userNames = boards[room];
-      userNames.forEach((userName) => {
-        socket.emit(EVENT.ENTERROOM, { name: userName, room });
-      });
-    });
-
-    // Listen for the notify event to receive messages
-    socket.on(EVENT.NOTIFY, ({ text }) => {
+    const handleNotify = ({ text }) => {
       toast.info(`${text}`);
-    });
+    };
+
+    socket.on(SOCKET_EVENT.FETCH, handleFetch);
+    socket.on(SOCKET_EVENT.NOTIFY, handleNotify);
 
     return () => {
-      socket.off(EVENT.NOTIFY);
+      socket.off(SOCKET_EVENT.FETCH, handleFetch);
+      socket.off(SOCKET_EVENT.NOTIFY, handleNotify);
     };
-  }, [boards]);
+  }, []);
 
   const handleMouseDown = (e) => {
     isDrawing.current = true;
@@ -111,9 +123,7 @@ const WhiteBoard = () => {
     setLines([...lines, newLine]);
     setRedoStack([]);
 
-    // Clear existing timeouts when starting a new drawing
     clearTimeout(drawingTimeout.current);
-    clearTimeout(undoRedoTimeout.current);
   };
 
   const handleMouseMove = (e) => {
@@ -132,10 +142,20 @@ const WhiteBoard = () => {
       return [...prevLines.slice(0, -1), lastLine];
     });
 
-    // Set a timeout to emit the "draw" event after a delay
     drawingTimeout.current = setTimeout(() => {
-      socket.emit(EVENT.DRAW, { lines });
-    }, 1000);
+      const compressedLines = pako.deflate(JSON.stringify(lines));
+      socket.emit(SOCKET_EVENT.DRAW, compressedLines);
+    }, 500);
+  };
+
+  const handleStoreBoardData = async () => {
+    const uri = stageRef.current.toDataURL();
+    const updated = await updateBoard(id, lines, uri);
+    if (updated.status === 200) {
+      toast.info("Stored Success");
+    } else {
+      toast.warning("Opps,something went wrong,please try again");
+    }
   };
 
   const handleMouseUp = () => {
@@ -144,11 +164,9 @@ const WhiteBoard = () => {
 
   const handleToolChange = (selectedTool) => {
     if (selectedTool === TOOL_ITEMS.ERASER) {
-      // Save the current color before switching to eraser
       setPreviousColor(currentColor);
       setCurrentColor(COLORS.WHITE);
     } else {
-      // Switching back to pencil, restore the previous color
       setCurrentColor(previousColor);
     }
     setTool(selectedTool);
@@ -164,9 +182,8 @@ const WhiteBoard = () => {
       setRedoStack([...redoStack, undoneLine]);
       setLines((prevLines) => prevLines.slice(0, -1));
 
-      // Emit undo event after a delay
       undoRedoTimeout.current = setTimeout(() => {
-        socket.emit(EVENT.UNDO, { line: undoneLine });
+        socket.emit(SOCKET_EVENT.UNDO, { line: undoneLine });
       }, 1000);
     }
   };
@@ -177,9 +194,8 @@ const WhiteBoard = () => {
       setLines([...lines, redoneLine]);
       setRedoStack((prevRedoStack) => prevRedoStack.slice(0, -1));
 
-      // Emit redo event after a delay
       undoRedoTimeout.current = setTimeout(() => {
-        socket.emit(EVENT.REDO, { line: redoneLine });
+        socket.emit(SOCKET_EVENT.REDO, { line: redoneLine });
       }, 1000);
     }
   };
@@ -188,12 +204,10 @@ const WhiteBoard = () => {
     setLines([]);
     setRedoStack([]);
 
-    // Clear existing timeouts when clearing the board
     clearTimeout(drawingTimeout.current);
     clearTimeout(undoRedoTimeout.current);
 
-    // Emit clear event
-    socket.emit(EVENT.CLEAR);
+    socket.emit(SOCKET_EVENT.CLEAR);
   };
 
   const handleBrushSize = (size) => {
@@ -201,15 +215,17 @@ const WhiteBoard = () => {
   };
 
   useEffect(() => {
-    document.addEventListener(EVENT.MOUSEUP, handleMouseUp);
+    document.addEventListener(SOCKET_EVENT.MOUSEUP, handleMouseUp);
     return () => {
-      document.removeEventListener(EVENT.MOUSEUP, handleMouseUp);
+      document.removeEventListener(SOCKET_EVENT.MOUSEUP, handleMouseUp);
     };
   }, []);
 
   return (
     <>
       <Menu
+        stageRef={stageRef}
+        handleStoreBoardData={handleStoreBoardData}
         activeUsers={activeUsers}
         roomList={roomList}
         currentColor={currentColor}
@@ -222,7 +238,7 @@ const WhiteBoard = () => {
         handleColorChange={handleColorChange}
       />
       <Stage
-        id="stage"
+        ref={stageRef}
         className="cursor-grabbing"
         width={window.innerWidth}
         height={window.innerHeight}

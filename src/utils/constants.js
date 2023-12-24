@@ -10,4 +10,19 @@ const COLORS = {
     ERASER: "ERASER",
     DOWNLOAD: "DOWNLOAD",
   };
-export {COLORS, TOOL_ITEMS}
+
+const SOCKET_EVENT = {
+  DRAW: "draw",
+  REDO: "redo",
+  UNDO: "undo",
+  CLEAR: "clear",
+  ACTIVITY: "activity",
+  ENTERROOM: "enterRoom",
+  NOTIFY: "notify",
+  USERLIST: "userList",
+  ROOMLIST: "roomList",
+  MOUSEUP: "mouseup",
+  FETCH:'fetch'
+};
+
+export {COLORS, TOOL_ITEMS,SOCKET_EVENT}

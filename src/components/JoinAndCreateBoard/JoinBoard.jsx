@@ -5,20 +5,14 @@ import { BiSolidAddToQueue } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
 import useJoinedUsers from "../../hooks/useJoinedUsers";
 
-const JoinBoardModal = ({ JoinBoardRef, boardId, boardName }) => {
-  const { setJoinedUsers } = useJoinedUsers();
+const JoinBoardModal = ({ JoinBoardRef, boardId }) => {
+  const { setJoinedUser } = useJoinedUsers();
   const navigate = useNavigate();
-  const [joinedUser, setJoinedUser] = useState("");
+  const [user, setUser] = useState("");
 
-  const handleJoinBoard = (boardId, boardName) => {
-    if (joinedUser) {
-      setJoinedUsers((prev) => ({
-        ...prev,
-        boards: {
-          ...prev.boardIds,
-          [boardName]: [...(prev.boards[boardName] || []), joinedUser],
-        },
-      }));
+  const handleJoinBoard = (boardId) => {
+    if (user) {
+      setJoinedUser({ name: user });
       navigate(`/${boardId}`);
     }
   };
@@ -32,9 +26,9 @@ const JoinBoardModal = ({ JoinBoardRef, boardId, boardName }) => {
           type="text"
           placeholder="Enter your name here"
           className="input input-bordered input-info w-full"
-          value={joinedUser}
+          value={user}
           required
-          onChange={(e) => setJoinedUser(e.target.value)}
+          onChange={(e) => setUser(e.target.value)}
         />
         <div className="modal-action justify-between">
           <button
@@ -46,7 +40,7 @@ const JoinBoardModal = ({ JoinBoardRef, boardId, boardName }) => {
 
           <button
             className="btn btn-outline btn-accent"
-            onClick={() => handleJoinBoard(boardId, boardName)}
+            onClick={() => handleJoinBoard(boardId)}
           >
             <BiSolidAddToQueue className="text-3xl" />
           </button>
@@ -61,7 +55,6 @@ JoinBoardModal.propTypes = {
     current: PropTypes.instanceOf(Element),
   }),
   boardId: PropTypes.string.isRequired,
-  boardName: PropTypes.string.isRequired,
 };
 
 export default JoinBoardModal;

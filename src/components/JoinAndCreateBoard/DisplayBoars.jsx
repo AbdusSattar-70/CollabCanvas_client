@@ -25,11 +25,7 @@ const DisplayBoars = ({ boardName, boardId, userName }) => {
           </button>
         </div>
       </div>
-      <JoinBoardModal
-        JoinBoardRef={JoinBoardRef}
-        boardId={boardId}
-        boardName={boardName}
-      />
+      <JoinBoardModal JoinBoardRef={JoinBoardRef} boardId={boardId} />
     </div>
   );
 };

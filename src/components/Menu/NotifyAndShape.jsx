@@ -8,25 +8,32 @@ import { TOOL_ITEMS } from "../../utils/constants";
 const NotifyAndShape = ({ activeUsers, roomList, handleToolChange }) => {
   return (
     <div className="grid grid-cols-3 gap-4 mr-4 pl-4">
-      {/* Active  users */}
+      {/* Active users */}
       <div className="cursor-pointer flex justify-center items-center h-10 w-10 rounded-md ">
         <div className="dropdown dropdown-hover ">
           <div tabIndex={0} role="button" className="btn">
             <FaCircleUser className="text-xl" />
           </div>
-          {activeUsers.length > 0 && (
+          {activeUsers.length ? (
             <ul
               tabIndex={0}
               className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
             >
-              {activeUsers.map((user) => (
+              {activeUsers?.map((user) => (
                 <li key={uuid()}>
                   <div>
                     <span className="h-2.5 w-2.5 rounded-full bg-green-500 me-2" />
-                    {user.name.split(" ")[0]}
+                    {user?.name?.split(" ")[0]}
                   </div>
                 </li>
               ))}
+            </ul>
+          ) : (
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
+            >
+              <li>No active user</li>
             </ul>
           )}
         </div>
@@ -34,29 +41,36 @@ const NotifyAndShape = ({ activeUsers, roomList, handleToolChange }) => {
 
       {/* Active rooms */}
       <div className="cursor-pointer flex justify-center items-center h-10 w-10 rounded-md">
-        <div className="dropdown dropdown-hover text-xl">
+        <div className="dropdown dropdown-hover">
           <div tabIndex={0} role="button" className="btn">
             <FaBorderAll className="text-xl" />
           </div>
-          {activeUsers.length > 0 && (
+          {activeUsers.length ? (
             <ul
               tabIndex={0}
               className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
             >
-              {roomList.map((room) => (
+              {roomList?.map((room) => (
                 <li key={uuid()}>
                   <button>
                     <span className="h-2.5 w-2.5 rounded-full bg-green-500 me-2" />
-                    {room.split(" ")[0]}
+                    {room?.split(" ")[0]}
                   </button>
                 </li>
               ))}
+            </ul>
+          ) : (
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
+            >
+              <li>No active room</li>
             </ul>
           )}
         </div>
       </div>
 
-      {/* shapes */}
+      {/* Shapes */}
       <div className="cursor-pointer flex justify-center items-center h-10 w-10 rounded-md ">
         <div className="dropdown dropdown-hover text-sm">
           <div tabIndex={0} role="button" className="btn">

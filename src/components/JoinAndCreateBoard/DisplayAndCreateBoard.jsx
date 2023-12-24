@@ -9,7 +9,7 @@ const DisplayAndCreateBoard = () => {
   const GET_BOARD_OK = 200;
   const createBoardRef = useRef();
   const [boardList, setBoardList] = useState([]);
-
+  // console.log(boardList[0].url[0]);
   useEffect(() => {
     const getBoard = async () => {
       try {
