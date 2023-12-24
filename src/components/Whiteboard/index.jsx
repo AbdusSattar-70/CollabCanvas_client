@@ -145,7 +145,7 @@ const WhiteBoard = () => {
     drawingTimeout.current = setTimeout(() => {
       const compressedLines = pako.deflate(JSON.stringify(lines));
       socket.emit(SOCKET_EVENT.DRAW, compressedLines);
-    }, 500);
+    }, 2000);
   };
 
   const handleStoreBoardData = async () => {
