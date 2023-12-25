@@ -245,6 +245,21 @@ const WhiteBoard = () => {
     };
   }, []);
 
+  const getCursorStyle = (currentTool) => {
+    switch (currentTool) {
+      case TOOL_ITEMS.PENCIL:
+        return "url(pencil-cursor.png), auto";
+      case TOOL_ITEMS.ERASER:
+        return "url(eraser-cursor.png), auto";
+      case TOOL_ITEMS.RECT:
+        return "crosshair";
+      case TOOL_ITEMS.CIRCLE:
+        return "crosshair";
+      default:
+        return "auto";
+    }
+  };
+
   return (
     <>
       <Menu
@@ -263,7 +278,7 @@ const WhiteBoard = () => {
       />
       <Stage
         ref={stageRef}
-        className="cursor-grabbing"
+        style={{ cursor: getCursorStyle(tool) }}
         width={window.innerWidth}
         height={window.innerHeight}
         onMouseDown={handleMouseDown}

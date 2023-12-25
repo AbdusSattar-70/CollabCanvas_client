@@ -1,16 +1,19 @@
 import PropTypes from "prop-types";
 import { useRef } from "react";
 import JoinBoardModal from "./JoinBoard";
-
-const DisplayBoars = ({ boardName, boardId, userName }) => {
+import stageImg from "../../assets/stage.png";
+const DisplayBoards = ({ boardName, boardId, userName, url }) => {
   const JoinBoardRef = useRef();
+  const isBase64Image = /^data:image\/png;base64,/.test(url);
+
   return (
     <div>
       <div className="card card-compact bg-base-100 shadow-xl">
-        <figure>
+        <figure style={{ width: "100%", height: "150px", overflow: "hidden" }}>
           <img
-            src="https://daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.jpg"
-            alt="Shoes"
+            src={isBase64Image ? url : stageImg}
+            alt="stage thumbnail"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </figure>
         <div className="card-body">
@@ -30,10 +33,11 @@ const DisplayBoars = ({ boardName, boardId, userName }) => {
   );
 };
 
-DisplayBoars.propTypes = {
+DisplayBoards.propTypes = {
   boardId: PropTypes.string.isRequired,
   boardName: PropTypes.string.isRequired,
   userName: PropTypes.string.isRequired,
+  url: PropTypes.string.isRequired,
 };
 
-export default DisplayBoars;
+export default DisplayBoards;
