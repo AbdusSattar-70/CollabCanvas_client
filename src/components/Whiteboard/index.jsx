@@ -1,25 +1,23 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-} from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Stage } from "react-konva";
 import { COLORS, TOOL_ITEMS, SOCKET_EVENT } from "../../utils/constants";
 import Menu from "../Menu";
 import DrawingShapeAndTool from "../DrawingShapeAndTool/DrawingShapeAndTool";
 import { socket } from "../../utils/socket";
-import useJoinedUsers from "../../hooks/useJoinedUsers";
 import { ToastContainer, toast } from "react-toastify";
 import { useParams } from "react-router-dom";
-import { fetchData, updateBoard } from "../../api/fetchData";
-import pako from "pako";
+import { updateBoard } from "../../api/fetchData";
+import * as ComlinkWorker from "comlink";
 
 const WhiteBoard = () => {
+  const worker = useMemo(
+    () => new ComlinkWorker(new URL("./worker.js", import.meta.url), {}),
+    []
+  );
+  const [loading, setLoading] = useState(true);
+  const fetchOnceRender = useRef(false);
   const stageRef = useRef();
-  const { id } = useParams();
-  const { joinedUser } = useJoinedUsers();
+  const { id, name } = useParams();
   const isDrawing = useRef(false);
   const drawingTimeout = useRef();
   const undoRedoTimeout = useRef();
@@ -32,31 +30,31 @@ const WhiteBoard = () => {
   const [brushSize, setBrushSize] = useState(1);
   const [activeUsers, setActiveUsers] = useState([]);
   const [roomList, setRoomList] = useState([]);
-
-  const fetchPreviousLines = useCallback(async () => {
-    try {
-      const res = await fetchData.get(`boards/${id}`);
-      setLines((prevLines) => [...prevLines, ...res.data[0].lines]);
-    } catch (error) {
-      console.error("Error fetching previous lines:", error);
-    }
-  }, [id]);
-
   useEffect(() => {
-    fetchPreviousLines();
-  }, [fetchPreviousLines]);
+    let isMounted = true;
 
-  useLayoutEffect(() => {
-    socket.emit(SOCKET_EVENT.ENTERROOM, { name: joinedUser.name, room: id });
-
-    const handleDraw = (data) => {
-      if (!handleDraw.timeoutId) {
-        handleDraw.timeoutId = setTimeout(() => {
-          const restored = JSON.parse(pako.inflate(data, { to: "string" }));
-          setLines((prev) => [...prev, ...restored]);
-          handleDraw.timeoutId = null;
-        }, 10);
+    const fetchPrevLineWorker = async () => {
+      try {
+        const res = await worker.fetchPreviousLines(id);
+        console.log(res);
+        if (isMounted) {
+          setLines((prevLines) => [...prevLines, ...res]);
+          setLoading(false);
+        }
+      } catch (error) {
+        setLoading(false);
+        console.error("Error fetching previous lines:", error);
       }
+    };
+
+    if (!fetchOnceRender.current) {
+      fetchOnceRender.current = true;
+      fetchPrevLineWorker();
+    }
+
+    const handleDraw = async (data) => {
+      const decomData = await worker.restored(data);
+      setLines((prev) => [...prev, ...decomData]);
     };
 
     const handleUndo = (data) => {
@@ -76,6 +74,21 @@ const WhiteBoard = () => {
       setRedoStack([]);
     };
 
+    socket.on(SOCKET_EVENT.DRAW, handleDraw);
+    socket.on(SOCKET_EVENT.UNDO, handleUndo);
+    socket.on(SOCKET_EVENT.REDO, handleRedo);
+    socket.on(SOCKET_EVENT.CLEAR, handleClear);
+
+    return () => {
+      isMounted = false;
+      socket.off(SOCKET_EVENT.DRAW, handleDraw);
+      socket.off(SOCKET_EVENT.UNDO, handleUndo);
+      socket.off(SOCKET_EVENT.REDO, handleRedo);
+      socket.off(SOCKET_EVENT.CLEAR, handleClear);
+    };
+  }, [id, redoStack, worker]);
+
+  useEffect(() => {
     const handleUserList = (data) => {
       setActiveUsers(data.users);
     };
@@ -84,48 +97,22 @@ const WhiteBoard = () => {
       setRoomList((prev) => [...prev, ...data.rooms]);
     };
 
-    socket.on(SOCKET_EVENT.DRAW, handleDraw);
-    socket.on(SOCKET_EVENT.UNDO, handleUndo);
-    socket.on(SOCKET_EVENT.REDO, handleRedo);
-    socket.on(SOCKET_EVENT.CLEAR, handleClear);
-    socket.on(SOCKET_EVENT.USERLIST, handleUserList);
-    socket.on(SOCKET_EVENT.ROOMLIST, handleRoomList);
-
-    return () => {
-      socket.off(SOCKET_EVENT.ENTERROOM);
-      socket.off(SOCKET_EVENT.DRAW, handleDraw);
-      socket.off(SOCKET_EVENT.UNDO, handleUndo);
-      socket.off(SOCKET_EVENT.REDO, handleRedo);
-      socket.off(SOCKET_EVENT.CLEAR, handleClear);
-      socket.off(SOCKET_EVENT.USERLIST, handleUserList);
-      socket.off(SOCKET_EVENT.ROOMLIST, handleRoomList);
-    };
-  }, [id, joinedUser, redoStack]);
-
-  useEffect(() => {
     const handleNotify = ({ text }) => {
       toast.info(`${text}`);
     };
 
-    socket.once(SOCKET_EVENT.NOTIFY, handleNotify);
+    socket.emit(SOCKET_EVENT.ENTERROOM, { name, room: id });
+    socket.once(SOCKET_EVENT.USERLIST, handleUserList);
+    socket.once(SOCKET_EVENT.ROOMLIST, handleRoomList);
+    socket.on(SOCKET_EVENT.NOTIFY, handleNotify);
 
     return () => {
+      socket.off(SOCKET_EVENT.ENTERROOM);
+      socket.off(SOCKET_EVENT.USERLIST, handleUserList);
+      socket.off(SOCKET_EVENT.ROOMLIST, handleRoomList);
       socket.off(SOCKET_EVENT.NOTIFY, handleNotify);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleFetch = (data) => {
-      const restored = JSON.parse(pako.inflate(data, { to: "string" }));
-      setLines((prev) => [...prev, ...restored]);
-    };
-
-    socket.on(SOCKET_EVENT.FETCH, handleFetch);
-
-    return () => {
-      socket.off(SOCKET_EVENT.FETCH, handleFetch);
-    };
-  }, []);
+  }, [id, name]);
 
   const handleMouseDown = (e) => {
     isDrawing.current = true;
@@ -143,6 +130,18 @@ const WhiteBoard = () => {
     clearTimeout(drawingTimeout.current);
   };
 
+  const senddrawingEmit = useCallback(() => {
+    clearTimeout(drawingTimeout.current);
+    drawingTimeout.current = setTimeout(
+      async () => {
+        const lastSegment = lines.slice(-1);
+        const compressedData = await worker.compressed(lastSegment);
+        socket.emit(SOCKET_EVENT.DRAW, compressedData);
+      },
+      tool === TOOL_ITEMS.RECT ? 1000 : 10
+    );
+  }, [lines, tool, worker]);
+
   const handleMouseMove = useCallback(
     (e) => {
       if (!isDrawing.current) return;
@@ -159,18 +158,9 @@ const WhiteBoard = () => {
         }
         return [...prevLines.slice(0, -1), lastLine];
       });
-
-      clearTimeout(drawingTimeout.current);
-      drawingTimeout.current = setTimeout(
-        () => {
-          const lastSegment = lines.slice(-1);
-          const compressedLines = pako.deflate(JSON.stringify(lastSegment));
-          socket.emit(SOCKET_EVENT.DRAW, compressedLines);
-        },
-        tool === TOOL_ITEMS.RECT ? 1000 : 10
-      );
+      senddrawingEmit();
     },
-    [drawingTimeout, lines, tool]
+    [lines, tool, senddrawingEmit]
   );
 
   const handleStoreBoardData = async () => {
@@ -262,35 +252,41 @@ const WhiteBoard = () => {
 
   return (
     <>
-      <Menu
-        stageRef={stageRef}
-        handleStoreBoardData={handleStoreBoardData}
-        activeUsers={activeUsers}
-        roomList={roomList}
-        currentColor={currentColor}
-        brushSize={brushSize}
-        handleToolChange={handleToolChange}
-        handleBrushSize={handleBrushSize}
-        handleRedo={handleRedo}
-        handleUndo={handleUndo}
-        handleClear={handleClear}
-        handleColorChange={handleColorChange}
-      />
-      <Stage
-        ref={stageRef}
-        style={{ cursor: getCursorStyle(tool) }}
-        width={window.innerWidth}
-        height={window.innerHeight}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-      >
-        <DrawingShapeAndTool lines={lines} />
-      </Stage>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={5000}
-        hideProgressBar
-      />
+      {loading ? (
+        <p>looading</p>
+      ) : (
+        <>
+          <Menu
+            stageRef={stageRef}
+            handleStoreBoardData={handleStoreBoardData}
+            activeUsers={activeUsers}
+            roomList={roomList}
+            currentColor={currentColor}
+            brushSize={brushSize}
+            handleToolChange={handleToolChange}
+            handleBrushSize={handleBrushSize}
+            handleRedo={handleRedo}
+            handleUndo={handleUndo}
+            handleClear={handleClear}
+            handleColorChange={handleColorChange}
+          />
+          <Stage
+            ref={stageRef}
+            style={{ cursor: getCursorStyle(tool) }}
+            width={window.innerWidth}
+            height={window.innerHeight}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+          >
+            <DrawingShapeAndTool lines={lines} />
+          </Stage>
+          <ToastContainer
+            position="bottom-right"
+            autoClose={5000}
+            hideProgressBar
+          />
+        </>
+      )}
     </>
   );
 };

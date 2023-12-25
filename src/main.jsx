@@ -6,7 +6,6 @@ import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
 import App from "../App";
 import ErrorPage from "./errorPage/ErrorPage";
-import { BoardProvider } from "./context/BoardProvider";
 import Whiteboard from "./components/Whiteboard";
 import DisplayAndCreateBoard from "./components/JoinAndCreateBoard/DisplayAndCreateBoard";
 
@@ -21,7 +20,7 @@ const router = createBrowserRouter([
         element: <DisplayAndCreateBoard />,
       },
       {
-        path: "/:id",
+        path: "/:id/:name",
         element: <Whiteboard />,
       },
     ],
@@ -30,8 +29,6 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <main className="overflow-x-hidden">
-    <BoardProvider>
-      <RouterProvider router={router} />
-    </BoardProvider>
+    <RouterProvider router={router} />
   </main>
 );

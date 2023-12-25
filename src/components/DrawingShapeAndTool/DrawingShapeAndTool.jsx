@@ -27,6 +27,7 @@ const DrawingShapeAndTool = ({ lines }) => {
               height={line.points[3] - line.points[1]}
               fill="transparent"
               stroke={line.color}
+              strokeWidth={line.brushSize}
             />
           )}
           {line.tool === TOOL_ITEMS.STAR && line.points.length === 4 && (
@@ -38,6 +39,7 @@ const DrawingShapeAndTool = ({ lines }) => {
               y={(line.points[1] + line.points[3]) / 2}
               fill="transparent"
               stroke={line.color}
+              strokeWidth={line.brushSize}
             />
           )}
           {line.tool === TOOL_ITEMS.CIRCLE && line.points.length === 4 && (
@@ -50,6 +52,7 @@ const DrawingShapeAndTool = ({ lines }) => {
               )}
               fill="transparent"
               stroke={line.color}
+              strokeWidth={line.brushSize}
             />
           )}
         </React.Fragment>

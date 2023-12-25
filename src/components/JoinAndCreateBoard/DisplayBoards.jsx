@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useRef } from "react";
 import JoinBoardModal from "./JoinBoard";
 import stageImg from "../../assets/stage.png";
+
 const DisplayBoards = ({ boardName, boardId, userName, url }) => {
   const JoinBoardRef = useRef();
   const isBase64Image = /^data:image\/png;base64,/.test(url);

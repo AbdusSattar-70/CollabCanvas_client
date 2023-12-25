@@ -9,6 +9,7 @@ const COLORS = {
     CIRCLE: "CIRCLE",
     ERASER: "ERASER",
     DOWNLOAD: "DOWNLOAD",
+    TEXT: 'TEXT'
   };
 
 const SOCKET_EVENT = {

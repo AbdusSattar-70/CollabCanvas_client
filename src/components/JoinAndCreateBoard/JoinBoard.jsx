@@ -3,17 +3,14 @@ import PropTypes from "prop-types";
 import { GrClose } from "react-icons/gr";
 import { BiSolidAddToQueue } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
-import useJoinedUsers from "../../hooks/useJoinedUsers";
 
 const JoinBoardModal = ({ JoinBoardRef, boardId }) => {
-  const { setJoinedUser } = useJoinedUsers();
   const navigate = useNavigate();
   const [user, setUser] = useState("");
 
   const handleJoinBoard = (boardId) => {
     if (user) {
-      setJoinedUser({ name: user });
-      navigate(`/${boardId}`);
+      navigate(`/${boardId}/${user}`);
     }
   };
 
