@@ -9,6 +9,7 @@ import { useParams } from "react-router-dom";
 import { updateBoard } from "../../api/fetchData";
 import * as ComlinkWorker from "comlink";
 import { getCursorStyle } from "../../utils/cursor";
+import Skeleton from "../../errorPage/Skeleton";
 
 const WhiteBoard = () => {
   const worker = useMemo(
@@ -39,7 +40,6 @@ const WhiteBoard = () => {
     const fetchPrevLines = async () => {
       try {
         const res = await worker.fetchPreviousLines(id);
-        console.log(res);
         if (isMounted) {
           setLines((prevLines) => [...prevLines, ...res]);
           setLoading(false);
@@ -165,7 +165,6 @@ const WhiteBoard = () => {
           lastLine.points[2] = pos.x;
           lastLine.points[3] = pos.y;
         } else {
-          // Handle other non-draggable shapes
           lastLine.points[2] = pos.x;
           lastLine.points[3] = pos.y;
         }
@@ -255,7 +254,7 @@ const WhiteBoard = () => {
   return (
     <>
       {loading ? (
-        <p>looading</p>
+        <Skeleton />
       ) : (
         <>
           <Menu
