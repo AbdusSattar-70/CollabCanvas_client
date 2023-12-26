@@ -7,7 +7,6 @@ import { fetchData } from "../../api/fetchData";
 
 const CreateBoardModal = ({ createBoardRef }) => {
   const CREATE_BOARD_URI = "/create-board";
-  const CREATED_STATUS = 201;
   const navigate = useNavigate();
   const [user, setUser] = useState("");
 
@@ -15,12 +14,9 @@ const CreateBoardModal = ({ createBoardRef }) => {
     try {
       const res = await fetchData.post(CREATE_BOARD_URI, { userName: user });
 
-      if (res.status === CREATED_STATUS) {
-        console.log(res);
-        const { boardId } = res.data;
-        navigate(`/${boardId}/${user}`);
-        createBoardRef.current.close();
-      }
+      const { boardId } = res.data;
+      navigate(`/${boardId}/${user}`);
+      createBoardRef.current.close();
     } catch (error) {
       console.error("Error creating board:", error);
     }
