@@ -8,8 +8,8 @@ const COLORS = {
     RECT: "RECT",
     CIRCLE: "CIRCLE",
     ERASER: "ERASER",
-    DOWNLOAD: "DOWNLOAD",
-    TEXT: 'TEXT'
+    FILL: 'fill',
+    TRANSPARENT: 'transparent'
   };
 
 const SOCKET_EVENT = {

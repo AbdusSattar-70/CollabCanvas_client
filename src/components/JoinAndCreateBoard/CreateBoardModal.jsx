@@ -17,7 +17,7 @@ const CreateBoardModal = ({ createBoardRef }) => {
 
       if (res.status === CREATED_STATUS) {
         const { _id: boardId } = res.data.board;
-        navigate(`/${boardId}`);
+        navigate(`/${boardId}/${user}`);
         createBoardRef.current.close();
       }
     } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import PropTypes from "prop-types";
 import { useRef } from "react";
 import JoinBoardModal from "./JoinBoard";
@@ -38,7 +39,6 @@ DisplayBoards.propTypes = {
   boardId: PropTypes.string.isRequired,
   boardName: PropTypes.string.isRequired,
   userName: PropTypes.string.isRequired,
-  url: PropTypes.string.isRequired,
 };
 
 export default DisplayBoards;

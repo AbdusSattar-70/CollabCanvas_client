@@ -5,7 +5,12 @@ import { FaBorderAll } from "react-icons/fa6";
 import { v4 as uuid } from "uuid";
 import { TOOL_ITEMS } from "../../utils/constants";
 
-const NotifyAndShape = ({ activeUsers, roomList, handleToolChange }) => {
+const NotifyAndShape = ({
+  activeUsers,
+  roomList,
+  handleToolChange,
+  fillMode,
+}) => {
   return (
     <div className="grid grid-cols-3 gap-4 mr-4 pl-4">
       {/* Active users */}
@@ -81,18 +86,39 @@ const NotifyAndShape = ({ activeUsers, roomList, handleToolChange }) => {
             className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-25"
           >
             <li>
-              <button onClick={() => handleToolChange(TOOL_ITEMS.RECT)}>
-                Rectangle
+              <button
+                onClick={() =>
+                  handleToolChange(TOOL_ITEMS.RECT, TOOL_ITEMS.FILL)
+                }
+              >
+                Rectangle:{" "}
+                {fillMode === TOOL_ITEMS.FILL
+                  ? TOOL_ITEMS.TRANSPARENT
+                  : TOOL_ITEMS.FILL}
               </button>
             </li>
             <li>
-              <button onClick={() => handleToolChange(TOOL_ITEMS.STAR)}>
-                Star
+              <button
+                onClick={() =>
+                  handleToolChange(TOOL_ITEMS.STAR, TOOL_ITEMS.FILL)
+                }
+              >
+                Star:{" "}
+                {fillMode === TOOL_ITEMS.FILL
+                  ? TOOL_ITEMS.TRANSPARENT
+                  : TOOL_ITEMS.FILL}
               </button>
             </li>
             <li>
-              <button onClick={() => handleToolChange(TOOL_ITEMS.CIRCLE)}>
-                Circle
+              <button
+                onClick={() =>
+                  handleToolChange(TOOL_ITEMS.CIRCLE, TOOL_ITEMS.FILL)
+                }
+              >
+                Circle:{" "}
+                {fillMode === TOOL_ITEMS.FILL
+                  ? TOOL_ITEMS.TRANSPARENT
+                  : TOOL_ITEMS.FILL}
               </button>
             </li>
           </ul>
@@ -106,6 +132,7 @@ NotifyAndShape.propTypes = {
   activeUsers: PropTypes.array.isRequired,
   roomList: PropTypes.array.isRequired,
   handleToolChange: PropTypes.func.isRequired,
+  fillMode: PropTypes.string.isRequired,
 };
 
 export default NotifyAndShape;

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import PropTypes from "prop-types";
 import {
   faEraser,
@@ -12,7 +13,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FaEyeDropper } from "react-icons/fa6";
 import { TOOL_ITEMS } from "../../utils/constants";
 import NotifyAndShape from "./NotifyAndShape";
-import { Stage } from "react-konva";
 
 const Menu = ({
   activeUsers,
@@ -27,6 +27,7 @@ const Menu = ({
   handleColorChange,
   handleStoreBoardData,
   stageRef,
+  fillMode,
 }) => {
   const downloadURI = () => {
     const uri = stageRef.current.toDataURL();
@@ -42,6 +43,7 @@ const Menu = ({
     <div className="grid grid-cols-12 py-2 pl-1 rounded-md bg-slate-300 border-2 border-red-200 shadow-2xl">
       <div className="col-span-3">
         <NotifyAndShape
+          fillMode={fillMode}
           handleToolChange={handleToolChange}
           activeUsers={activeUsers}
           roomList={roomList}
@@ -144,9 +146,7 @@ Menu.propTypes = {
   activeUsers: PropTypes.array.isRequired,
   roomList: PropTypes.array.isRequired,
   currentColor: PropTypes.string.isRequired,
-  stageRef: PropTypes.shape({
-    current: PropTypes.instanceOf(Stage),
-  }),
+  handleFillModeChange: PropTypes.func.isRequired,
   brushSize: PropTypes.number.isRequired,
   handleToolChange: PropTypes.func.isRequired,
   handleBrushSize: PropTypes.func.isRequired,
@@ -154,7 +154,6 @@ Menu.propTypes = {
   handleUndo: PropTypes.func.isRequired,
   handleStoreBoardData: PropTypes.func.isRequired,
   handleClear: PropTypes.func.isRequired,
-  handleColorChange: PropTypes.func.isRequired,
 };
 
 export default Menu;

@@ -8,6 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { useParams } from "react-router-dom";
 import { updateBoard } from "../../api/fetchData";
 import * as ComlinkWorker from "comlink";
+import { getCursorStyle } from "../../utils/cursor";
 
 const WhiteBoard = () => {
   const worker = useMemo(
@@ -27,13 +28,15 @@ const WhiteBoard = () => {
   const [currentColor, setCurrentColor] = useState(COLORS.BASIC);
   const [previousColor, setPreviousColor] = useState(COLORS.BASIC);
   const [redoStack, setRedoStack] = useState([]);
+  const [fillMode, setFillMode] = useState(TOOL_ITEMS.TRANSPARENT);
   const [brushSize, setBrushSize] = useState(1);
   const [activeUsers, setActiveUsers] = useState([]);
   const [roomList, setRoomList] = useState([]);
+
   useEffect(() => {
     let isMounted = true;
 
-    const fetchPrevLineWorker = async () => {
+    const fetchPrevLines = async () => {
       try {
         const res = await worker.fetchPreviousLines(id);
         console.log(res);
@@ -49,7 +52,7 @@ const WhiteBoard = () => {
 
     if (!fetchOnceRender.current) {
       fetchOnceRender.current = true;
-      fetchPrevLineWorker();
+      fetchPrevLines();
     }
 
     const handleDraw = async (data) => {
@@ -122,6 +125,8 @@ const WhiteBoard = () => {
       points: [pos.x, pos.y],
       color: currentColor,
       brushSize,
+      fillMode,
+      draggable: true,
     };
 
     setLines((prevLines) => [...prevLines, newLine]);
@@ -138,7 +143,11 @@ const WhiteBoard = () => {
         const compressedData = await worker.compressed(lastSegment);
         socket.emit(SOCKET_EVENT.DRAW, compressedData);
       },
-      tool === TOOL_ITEMS.RECT ? 1000 : 10
+      tool === TOOL_ITEMS.RECT ||
+        tool === TOOL_ITEMS.CIRCLE ||
+        tool === TOOL_ITEMS.STAR
+        ? 1000
+        : 10
     );
   }, [lines, tool, worker]);
 
@@ -152,7 +161,11 @@ const WhiteBoard = () => {
       setLines((prevLines) => {
         if (tool === TOOL_ITEMS.PENCIL || tool === TOOL_ITEMS.ERASER) {
           lastLine.points = lastLine.points.concat([pos.x, pos.y]);
+        } else if (lastLine.draggable) {
+          lastLine.points[2] = pos.x;
+          lastLine.points[3] = pos.y;
         } else {
+          // Handle other non-draggable shapes
           lastLine.points[2] = pos.x;
           lastLine.points[3] = pos.y;
         }
@@ -173,13 +186,17 @@ const WhiteBoard = () => {
     }
   };
 
-  const handleToolChange = (selectedTool) => {
+  const handleToolChange = (selectedTool, newFill = null) => {
     if (selectedTool === TOOL_ITEMS.ERASER) {
       setPreviousColor(currentColor);
       setCurrentColor(COLORS.WHITE);
     } else {
       setCurrentColor(previousColor);
+      setFillMode((prevFillMode) =>
+        prevFillMode === newFill ? TOOL_ITEMS.TRANSPARENT : TOOL_ITEMS.FILL
+      );
     }
+
     setTool(selectedTool);
   };
 
@@ -235,21 +252,6 @@ const WhiteBoard = () => {
     };
   }, []);
 
-  const getCursorStyle = (currentTool) => {
-    switch (currentTool) {
-      case TOOL_ITEMS.PENCIL:
-        return "url(pencil-cursor.png), auto";
-      case TOOL_ITEMS.ERASER:
-        return "url(eraser-cursor.png), auto";
-      case TOOL_ITEMS.RECT:
-        return "crosshair";
-      case TOOL_ITEMS.CIRCLE:
-        return "crosshair";
-      default:
-        return "auto";
-    }
-  };
-
   return (
     <>
       {loading ? (
@@ -265,6 +267,7 @@ const WhiteBoard = () => {
             brushSize={brushSize}
             handleToolChange={handleToolChange}
             handleBrushSize={handleBrushSize}
+            fillMode={fillMode}
             handleRedo={handleRedo}
             handleUndo={handleUndo}
             handleClear={handleClear}
