@@ -8,6 +8,22 @@ const COLORS = {
     RECT: "RECT",
     CIRCLE: "CIRCLE",
     ERASER: "ERASER",
-    DOWNLOAD: "DOWNLOAD",
+    FILL: 'fill',
+    TRANSPARENT: 'transparent'
   };
-export {COLORS, TOOL_ITEMS}
+
+const SOCKET_EVENT = {
+  DRAW: "draw",
+  REDO: "redo",
+  UNDO: "undo",
+  CLEAR: "clear",
+  ACTIVITY: "activity",
+  ENTERROOM: "enterRoom",
+  NOTIFY: "notify",
+  USERLIST: "userList",
+  ROOMLIST: "roomList",
+  MOUSEUP: "mouseup",
+  FETCH:'fetch'
+};
+
+export {COLORS, TOOL_ITEMS,SOCKET_EVENT}
