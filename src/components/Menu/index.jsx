@@ -146,7 +146,6 @@ Menu.propTypes = {
   activeUsers: PropTypes.array.isRequired,
   roomList: PropTypes.array.isRequired,
   currentColor: PropTypes.string.isRequired,
-  handleFillModeChange: PropTypes.func.isRequired,
   brushSize: PropTypes.number.isRequired,
   handleToolChange: PropTypes.func.isRequired,
   handleBrushSize: PropTypes.func.isRequired,

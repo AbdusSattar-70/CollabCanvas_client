@@ -1,7 +1,6 @@
 import { io } from "socket.io-client";
-// import pako from "pako";
 
-const server = "https://collabcanvas.onrender.com";
+const server = "http://localhost:5000";
 const connectionOptions = {
   "force new connection": true,
   reconnectionAttempts: "Infinity",

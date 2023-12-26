@@ -16,7 +16,8 @@ const CreateBoardModal = ({ createBoardRef }) => {
       const res = await fetchData.post(CREATE_BOARD_URI, { userName: user });
 
       if (res.status === CREATED_STATUS) {
-        const { _id: boardId } = res.data.board;
+        console.log(res);
+        const { boardId } = res.data;
         navigate(`/${boardId}/${user}`);
         createBoardRef.current.close();
       }

@@ -10,7 +10,7 @@ const DisplayAndCreateBoard = () => {
   const createBoardRef = useRef();
   const [boardList, setBoardList] = useState([]);
   useEffect(() => {
-    const getBoard = async () => {
+    const getBoards = async () => {
       try {
         const res = await fetchData.get(GET_BOARD_URI);
         if (res.status === GET_BOARD_OK) {
@@ -21,7 +21,7 @@ const DisplayAndCreateBoard = () => {
         console.error("Error getting board:", error);
       }
     };
-    getBoard();
+    getBoards();
   }, []);
 
   return (

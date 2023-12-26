@@ -16,7 +16,6 @@ export const compressed = (data)=>{
   export const fetchPreviousLines = async (id) => {
     try {
       const res = await fetchData.get(`boards/${id}`);
-
       return res.data[0].lines;
     } catch (error) {
       console.error("Error fetching previous lines:", error);
