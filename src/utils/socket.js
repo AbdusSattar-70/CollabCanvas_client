@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const server = "http://localhost:5000";
+const server = "https://collabcanvas.onrender.com";
 const connectionOptions = {
   "force new connection": true,
   reconnectionAttempts: "Infinity",
